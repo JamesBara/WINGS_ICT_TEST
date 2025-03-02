@@ -59,6 +59,7 @@ void RTC_WKUP_IRQHandler(void)
         /*Enter stop mode 2.*/
         if (is_running == true)
         {
+            triac_off();
             SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk);
             rtc_wakeup_timer_start(7200);
         }
