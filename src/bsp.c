@@ -3,6 +3,8 @@
 
 __STATIC_INLINE void gpio_setup(void);
 __STATIC_INLINE void rtc_setup(void);
+__STATIC_INLINE void i2c1_setup(void);
+__STATIC_INLINE void triac_setup(void);
 
 /**
  * @brief Sets all gpios to analog with a pull-down resistor, to minimize consumption
@@ -85,6 +87,51 @@ __STATIC_INLINE void rtc_setup(void)
 }
 
 /**
+ * @brief Initialize clocks and I/O for the I2C1 peripheral.
+ * @param
+ */
+__STATIC_INLINE void i2c1_setup(void)
+{
+	/*Enable peripheral clocks.*/
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
+
+	GPIOA->MODER &= ~(GPIO_MODER_Msk(ADT7420_SDA_PIN) | GPIO_MODER_Msk(ADT7420_SCL_PIN));
+	GPIOA->MODER |= (GPIO_MODER_ALTERNATE_FUNCTION(ADT7420_SDA_PIN) | GPIO_MODER_ALTERNATE_FUNCTION(ADT7420_SCL_PIN));
+	GPIOA->OTYPER |= ((0x1UL << ADT7420_SDA_PIN) | (0x1UL << ADT7420_SCL_PIN));
+	GPIOA->OSPEEDR &= ~(GPIO_OSPEEDR_Msk(ADT7420_SDA_PIN) | GPIO_OSPEEDR_Msk(ADT7420_SCL_PIN));
+	GPIOA->OSPEEDR |= (GPIO_OSPEEDR_VERY_HIGH_SPEED(ADT7420_SDA_PIN) | GPIO_OSPEEDR_VERY_HIGH_SPEED(ADT7420_SCL_PIN));
+	GPIOA->AFRH &= ~(GPIO_AFRH_Msk(ADT7420_SDA_PIN) | GPIO_AFRH_Msk(ADT7420_SCL_PIN));
+	GPIOA->AFRH |= (GPIO_AFRH(4, ADT7420_SDA_PIN) | GPIO_AFRH(4, ADT7420_SCL_PIN));
+
+	/*Disable I2C.*/
+	I2C1->CR1 &= ~I2C_CR1_PE;
+	/*Configure the timings.*/
+	/*Value is calculated from CUBEMX for 400KHz I2C at 4Mhz SYSCLK.*/
+	I2C1->TIMINGR = 0x4UL;
+	/*Enable I2C.*/
+	I2C1->CR1 |= I2C_CR1_PE;
+}
+
+/**
+ * @brief Initialize clocks and I/O for triac pin.
+ * @param
+ */
+__STATIC_INLINE void triac_setup(void)
+{
+	/*Enable peripheral clock.*/
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+
+	GPIOA->MODER &= ~GPIO_MODER_Msk(OPTOISOLATOR_PIN);
+	GPIOA->MODER |= GPIO_MODER_OUTPUT(OPTOISOLATOR_PIN);
+	GPIOA->OTYPER &= ~(0x1UL << OPTOISOLATOR_PIN);
+	GPIOA->OSPEEDR &= ~GPIO_OSPEEDR_Msk(OPTOISOLATOR_PIN);
+	GPIOA->OSPEEDR |= GPIO_OSPEEDR_VERY_HIGH_SPEED(OPTOISOLATOR_PIN);
+	/*Set to high.*/
+	GPIOA->ODR |= (0x1UL << OPTOISOLATOR_PIN);
+}
+
+/**
  * @brief Enable oscillator and clocks that were disabled.
  * @param  
  */
@@ -109,33 +156,6 @@ void reenable_peripheral_clocks(void)
 uint32_t get_tick(void)
 {
 	return DWT->CYCCNT;
-}
-
-/**
- * @brief Initialize clocks and I/O for the I2C1 peripheral.
- * @param  
- */
-void i2c1_setup(void)
-{
-	/*Enable peripheral clocks.*/
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;	
-	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
-
-	GPIOA->MODER &= ~(GPIO_MODER_Msk(ADT7420_SDA_PIN) | GPIO_MODER_Msk(ADT7420_SCL_PIN));
-	GPIOA->MODER |= (GPIO_MODER_ALTERNATE_FUNCTION(ADT7420_SDA_PIN) | GPIO_MODER_ALTERNATE_FUNCTION(ADT7420_SCL_PIN));
-	GPIOA->OTYPER |= ((0x1UL << ADT7420_SDA_PIN) | (0x1UL << ADT7420_SCL_PIN));
-	GPIOA->OSPEEDR &= ~(GPIO_OSPEEDR_Msk(ADT7420_SDA_PIN) | GPIO_OSPEEDR_Msk(ADT7420_SCL_PIN));
-	GPIOA->OSPEEDR |= (GPIO_OSPEEDR_VERY_HIGH_SPEED(ADT7420_SDA_PIN) | GPIO_OSPEEDR_VERY_HIGH_SPEED(ADT7420_SCL_PIN));
-	GPIOA->AFRH &= ~(GPIO_AFRH_Msk(ADT7420_SDA_PIN) | GPIO_AFRH_Msk(ADT7420_SCL_PIN));
-	GPIOA->AFRH |= (GPIO_AFRH(4, ADT7420_SDA_PIN) | GPIO_AFRH(4, ADT7420_SCL_PIN));
-
-	/*Disable I2C.*/
-	I2C1->CR1 &= ~I2C_CR1_PE;
-	/*Configure the timings.*/
-	/*Value is calculated from CUBEMX for 400KHz I2C at 4Mhz SYSCLK.*/
-	I2C1->TIMINGR = 0x4UL;
-	/*Enable I2C.*/
-	I2C1->CR1 |= I2C_CR1_PE;
 }
 
 /**
@@ -195,24 +215,6 @@ void i2c1_read_start(uint8_t address, uint8_t* buffer, uint16_t buffer_size)
 void i2c1_transfer_stop(void)
 {
 	I2C1->CR2 = I2C_CR2_STOP;
-}
-
-/**
- * @brief Initialize clocks and I/O for triac pin.
- * @param  
- */
-void triac_setup(void)
-{
-	/*Enable peripheral clock.*/
-	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
-
-	GPIOA->MODER &= ~GPIO_MODER_Msk(OPTOISOLATOR_PIN);
-	GPIOA->MODER |= GPIO_MODER_OUTPUT(OPTOISOLATOR_PIN);
-	GPIOA->OTYPER &= ~(0x1UL << OPTOISOLATOR_PIN);
-	GPIOA->OSPEEDR &= ~GPIO_OSPEEDR_Msk(OPTOISOLATOR_PIN);
-	GPIOA->OSPEEDR |= GPIO_OSPEEDR_VERY_HIGH_SPEED(OPTOISOLATOR_PIN);
-	/*Set to high.*/
-	GPIOA->ODR |= (0x1UL << OPTOISOLATOR_PIN);
 }
 
 /**
