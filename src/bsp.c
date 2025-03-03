@@ -132,23 +132,6 @@ __STATIC_INLINE void triac_setup(void)
 }
 
 /**
- * @brief Enable oscillator and clocks that were disabled.
- * @param  
- */
-void reenable_peripheral_clocks(void)
-{
-	/*Enable Syscfg clock*/
-	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
-	/*Enable pwr clock*/
-	RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
-	/*Enable gpio clocks.*/
-	RCC->AHB2ENR |= (RCC_AHB2ENR_GPIOAEN | RCC_AHB2ENR_GPIOBEN);
-	/*Enable I2C1 clock.*/
-	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
-
-}
-
-/**
  * @brief Gets the current value in the Cycle Count Register.
  * @param  
  * @return The current value of the Cycle Count Register.
@@ -260,6 +243,50 @@ void rtc_wakeup_timer_start(uint16_t seconds)
 }
 
 /**
+ * @brief Enter stop mode 2. Function should be called within the wakeup interrupt handler.
+ * @param  
+ */
+void irq_enter_stop_mode2(void)
+{
+	PWR->CR1 |= PWR_CR1_LPMS_STOP_2;
+	SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk);
+}
+
+/**
+ * @brief Exit stop mode 2. Function should be called within the wakeup interrupt handler.
+ * @param
+ */
+void irq_exit_stop_mode2(void)
+{
+	SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk);
+	/*Enable Syscfg clock*/
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	/*Enable pwr clock*/
+	RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+	/*Enable gpio clocks.*/
+	RCC->AHB2ENR |= (RCC_AHB2ENR_GPIOAEN | RCC_AHB2ENR_GPIOBEN);
+	/*Enable I2C1 clock.*/
+	RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
+	PWR->CR1 &= ~PWR_CR1_LPMS_Msk;
+}
+
+/**
+ * @brief Check if the wakeup timer has elapsed. Function should be called within the wakeup interrupt handler.
+ * @param  
+ * @return true if the wakeup timer has elapsed, false otherwise.
+ */
+bool irq_is_wakeup_timeout(void)
+{
+	if ((RTC->SR & RTC_SR_WUTF) == RTC_SR_WUTF)
+	{
+		/*Clear the interrupt.*/
+		RTC->SCR = RTC_CSR_CWUTF;
+		return true;
+	}
+	return false;
+}
+
+/**
  * @brief Initialize the hardware.
  * @param  
  */
@@ -269,9 +296,6 @@ void bsp_init(void)
 	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 	/*Enable PWR clock.*/
 	RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
-	/*Prepare for stop 2 mode.*/
-	PWR->CR1 &= ~PWR_CR1_LPMS_Msk;
-	PWR->CR1 |= PWR_CR1_LPMS_STOP_2; 
 	/*Enable prefetch.*/
 	FLASH->ACR |= FLASH_ACR_PRFTEN;
 	rtc_setup();
