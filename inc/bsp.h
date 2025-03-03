@@ -15,7 +15,7 @@
 /*GPIOB pins.*/
 #define SWO_PIN 3
 
-
+void ms_delay(uint32_t milliseconds);
 uint32_t get_tick(void);
 void i2c1_write_start(uint8_t address, uint8_t* buffer, uint16_t buffer_size);
 void i2c1_read_start(uint8_t address, uint8_t* buffer, uint16_t buffer_size);

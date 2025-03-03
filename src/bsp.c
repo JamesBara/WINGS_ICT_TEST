@@ -1,6 +1,8 @@
 #include "stm32l412.h"
 #include "bsp.h"
 
+static __IO uint32_t __tick;
+
 __STATIC_INLINE void gpio_setup(void);
 __STATIC_INLINE void rtc_setup(void);
 __STATIC_INLINE void i2c1_setup(void);
@@ -132,13 +134,23 @@ __STATIC_INLINE void triac_setup(void)
 }
 
 /**
- * @brief Gets the current value in the Cycle Count Register.
- * @param  
- * @return The current value of the Cycle Count Register.
+ * @brief Blocking delay in milliseconds
+ * @param milliseconds Timeout in milliseconds.
+ */
+void ms_delay(uint32_t milliseconds)
+{
+	uint32_t s_tick = __tick;
+	while ((__tick - s_tick) < milliseconds);
+}
+
+/**
+ * @brief Gets the current time in milliseconds.
+ * @param
+ * @return value of variable __tick.
  */
 uint32_t get_tick(void)
 {
-	return DWT->CYCCNT;
+	return __tick;
 }
 
 /**
@@ -298,14 +310,23 @@ void bsp_init(void)
 	RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
 	/*Enable prefetch.*/
 	FLASH->ACR |= FLASH_ACR_PRFTEN;
+	/*Configure Systick to 1 ms.*/
+	__tick = 0;
+	ASSERT(!SysTick_Config(MAIN_CLOCK_DEFAULT_FREQUENCY / 1000));
+	NVIC_EnableIRQ(SysTick_IRQn);
 	rtc_setup();
 	gpio_setup();
 	i2c1_setup();
 	triac_setup();
 }
 
-
-
-
+/**
+ * @brief Systick interrupt handler. Increments __tick variable.
+ * @param  
+ */
+void SysTick_Handler(void)
+{
+	__tick++;
+}
 
 

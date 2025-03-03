@@ -27,6 +27,8 @@ int main(void)
     bsp_init();
     /*Initialize the pid values.*/
     pid_manual_tuning(&pid_heater, PID_KP, PID_KI, PID_KD, TARGET_TEMPERATURE);
+    /*Wait for adt7420 to convert the reading.*/
+    ms_delay(ADT7420_POWERUP_CONVERSION_TIMEOUT);
     /*Start the wakeup timer.*/
     rtc_wakeup_timer_start(RUN_TIMEOUT);
     is_running = true;
@@ -55,7 +57,8 @@ static void main_loop(void)
     {
         /*Leave as is.*/
     }
-
+    /*Wait for adt7420 to convert the next reading.*/
+    ms_delay(ADT7420_CONVERSION_TIMEOUT);
 }
 
 /**

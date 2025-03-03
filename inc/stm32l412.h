@@ -108,7 +108,7 @@ typedef __OM uint32_t __WO; /*!< Register is Write-Only.*/
 typedef __IOM uint32_t __RW; /*!< Register is Read-Write.*/
 #define RESERVED uint32_t CONCAT(Reserved, __LINE__) /*!< Register is reserved*/
 
-
+#define MAIN_CLOCK_DEFAULT_FREQUENCY 4000000
 #define MAIN_CLOCK_MAX_FREQUENCY 80000000
 
 #include "flash.h"

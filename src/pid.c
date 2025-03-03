@@ -10,7 +10,8 @@
  */
 float pid_calculate_output(struct pid_type *pid, float input)
 {
-	float p, i, d, err, tick, dt;
+	uint32_t tick;
+	float p, i, d, err, dt;
 
 	tick = get_tick();
 	dt = (float)(tick - pid->previous_tick);
